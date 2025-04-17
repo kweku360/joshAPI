@@ -1,0 +1,175 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(uuid())
+  email             String    @unique
+  password          String?   // Now optional for passwordless auth
+  name              String?
+  phone             String?
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  isGuest           Boolean   @default(false)
+  role              Role      @default(USER)
+  status            UserStatus @default(ACTIVE)
+  passwordResetAt   DateTime?
+  passwordResetToken String?
+  googleId          String?   @unique  // For Google OAuth users
+  authProvider      AuthProvider @default(EMAIL)  // Track how user authenticates
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastLoginAt       DateTime?
+  verificationTokens VerificationToken[]
+  bookings          Booking[]
+  payments          Payment[]
+  devices           UserDevice[] // User's known devices
+  flightBookings    FlightBooking[]
+
+  @@map("users")
+}
+
+model VerificationToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  type      TokenType
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("verification_tokens")
+}
+
+model Booking {
+  id                String    @id @default(uuid())
+  bookingReference  String    @unique
+  userId            String?   // Now optional for initial guest bookings
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  flightOfferData   Json      // Store the Amadeus flight offer data
+  passengerDetails  Json      // Store passenger details
+  status            BookingStatus @default(PENDING)
+  failureReason     String?   // Reason for failure if status is FAILED
+  amadeusOrderId    String?   // The ID of the order in Amadeus
+  amadeusOrderData  Json?     // The order data from Amadeus
+  contactEmail      String    // Email for contact (may be different from user email)
+  contactPhone      String?   // Phone for contact (may be different from user phone)
+  totalAmount       Float
+  currency          String    @default("USD")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  expiresAt         DateTime? // When the offer expires
+  payments          Payment[]
+  eTicketUrl        String?
+
+  @@index([bookingReference])
+  @@index([userId])
+  @@index([status])
+  @@index([contactEmail])
+  @@map("bookings")
+}
+
+model Payment {
+  id                String    @id @default(uuid())
+  transactionId     String    @unique
+  bookingId         String
+  booking           Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount            Float
+  currency          String    @default("USD")
+  paymentMethod     String
+  status            PaymentStatus @default(PENDING)
+  paymentData       Json?     // Additional payment data
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([transactionId])
+  @@map("payments")
+}
+
+model UserDevice {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fingerprint   String    // Device fingerprint hash
+  userAgent     String    // User-agent string
+  ip            String    // IP address
+  createdAt     DateTime  @default(now())
+  lastUsedAt    DateTime  // Last time this device was used
+
+  @@unique([userId, fingerprint])
+  @@map("user_devices")
+}
+
+// Flight bookings
+model FlightBooking {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookingReference String         @unique  // Amadeus PNR
+  flightOfferData  Json           // Original flight offer data
+  totalPrice       Decimal        @db.Decimal(10, 2)
+  currency         String         // Currency code (e.g., USD)
+  bookingStatus    BookingStatus
+  paymentStatus    PaymentStatus
+  contactEmail     String
+  contactPhone     String
+  passengers       Json           // Passenger information
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@map("flight_bookings")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum TokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  PHONE_VERIFICATION
+  OTP_AUTHENTICATION
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  FAILED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum AuthProvider {
+  EMAIL
+  GOOGLE
+  OTP
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"booking.js","sourceRoot":"","sources":["../../src/types/booking.ts"],"names":[],"mappings":";;AAuEA,0CAOC;AARD,6DAA6D;AAC7D,SAAgB,eAAe,CAAC,OAAY;IAC1C,uCACK,OAAO,KACV,eAAe,EAAE,OAAO,CAAC,eAA8B,EACvD,gBAAgB,EAAE,OAAO,CAAC,gBAAqC,EAC/D,MAAM,EAAE,OAAO,CAAC,MAAuB,IACvC;AACJ,CAAC"}

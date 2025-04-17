@@ -1,0 +1,3 @@
+export declare const timeoutHandler: import("express").RequestHandler<import("@types/express-serve-static-core").ParamsDictionary, any, any, import("@types/qs").ParsedQs, Record<string, any>>;
+export declare const flightTimeoutHandler: import("express").RequestHandler<import("@types/express-serve-static-core").ParamsDictionary, any, any, import("@types/qs").ParsedQs, Record<string, any>>;
+//# sourceMappingURL=timeout.d.ts.map
